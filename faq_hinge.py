@@ -14,32 +14,32 @@ import pandas as pd
 from models import GRUEncoder, DualEncoder
 
 class Tokenizer():
-	def __init__(self, vocab):
-		self.id2word = ["UNK"] + vocab
-		self.word2id = {w:i for i, w in enumerate(vocab)}
+    def __init__(self, vocab):
+        self.id2word = ["UNK"] + vocab
+        self.word2id = {w:i for i, w in enumerate(vocab)}
 
-	def text2id(self, text):
-		return [self.word2id.get(w, 0) for w in str(text)]
+    def text2id(self, text):
+        return [self.word2id.get(w, 0) for w in str(text)]
 
-	def id2text(self, ids):
-		return "".join([self.id2word[_id] for _id in ids])
+    def id2text(self, ids):
+        return "".join([self.id2word[_id] for _id in ids])
 
-	@property
-	def vocab_size(self):
-		return len(self.id2word)
+    @property
+    def vocab_size(self):
+        return len(self.id2word)
 
 def create_tokenizer(texts, vocab_size):
-	"""
-		args:
-			texts: List[str] of text
-	"""
-	allvocab = ""
-	for text in texts:
-		allvocab += str(text)
-	vocab_count = Counter(allvocab)
-	vocab = vocab_count.most_common(vocab_size)
-	vocab = [w[0] for w in vocab]
-	return Tokenizer(vocab)
+    """
+        args:
+            texts: List[str] of text
+    """
+    allvocab = ""
+    for text in texts:
+        allvocab += str(text)
+    vocab_count = Counter(allvocab)
+    vocab = vocab_count.most_common(vocab_size)
+    vocab = [w[0] for w in vocab]
+    return Tokenizer(vocab)
 
 def list2tensor(sents, tokenizer):
 	res = []
