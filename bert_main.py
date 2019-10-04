@@ -27,6 +27,7 @@ def set_seed(args):
     torch.manual_seed(args.seed)
 
 class FAQProcessor(DataProcessor):
+<<<<<<< HEAD
     """Processor for the FAQ problem
         modified from https://github.com/huggingface/transformers/blob/master/transformers/data/processors/glue.py#L154 
     """
@@ -52,6 +53,33 @@ class FAQProcessor(DataProcessor):
                 InputExample(guid=i, text_a=titles[i], text_b=replies[i], label=labels[i]))
         return examples
 
+=======
+	"""Processor for the FAQ problem
+	modified from https://github.com/huggingface/transformers/blob/master/transformers/data/processors/glue.py#L154 
+	"""
+	def get_train_examples(self, data_dir):
+		return self._create_examples(
+			os.path.join(data_dir, "train.csv"))
+
+	def get_dev_examples(self, data_dir):
+		return self._create_examples(
+			os.path.join(data_dir, "dev.csv"))
+	
+	def get_labels(self):
+		return [0, 1]
+
+	def _create_examples(self, path):
+		df = pd.read_csv(path)
+		examples = []
+		titles = [str(t)[:100] for t in df["title"].tolist()]
+		replies = [str(t)[:100] for t in df["reply"].tolist()]
+		labels = df["is_best"].astype("int").tolist()
+		for i in range(len(labels)):
+			examples.append(
+				InputExample(guid=i, text_a=titles[i], text_b=replies[i], label=labels[i]))
+		return examples
+		
+>>>>>>> 7da92a55736220fd79b4d70acce31c4f80f7b8c1
 
 def train(args, train_dataset, model, tokenizer):
     """Train the model"""
@@ -111,7 +139,11 @@ def train(args, train_dataset, model, tokenizer):
             train_iterator.close()
             break
 
+<<<<<<< HEAD
     return global_step, tr_loss / global_step				
+=======
+        return global_step, tr_loss / global_step				
+>>>>>>> 7da92a55736220fd79b4d70acce31c4f80f7b8c1
 
 def evaluate(args, model, tokenizer):
     pass
@@ -119,9 +151,13 @@ def evaluate(args, model, tokenizer):
 
 
 def load_and_cache_examples(args, tokenizer, evaluate=False):
+<<<<<<< HEAD
     """ 
     modified from https://github.com/huggingface/transformers/blob/702f589848baba97ea4897aa3f0bb937e1ec3bcf/examples/run_glue.py#L261
     """
+=======
+    """ modified from https://github.com/huggingface/transformers/blob/702f589848baba97ea4897aa3f0bb937e1ec3bcf/examples/run_glue.py#L261"""
+>>>>>>> 7da92a55736220fd79b4d70acce31c4f80f7b8c1
     processor = FAQProcessor()
     cached_features_file = "cached_{}".format("dev" if evaluate else "train")	
     if os.path.exists(cached_features_file):
@@ -218,9 +254,16 @@ def main():
         tokenizer = BertTokenizer.from_pretrained(args.output_dir)
         model = model.to(args.device)
 
+<<<<<<< HEAD
     """ if args.do_eval:
             run evaluation code
     """
+=======
+        """ 
+        if args.do_eval:
+            run evaluation code
+        """
+>>>>>>> 7da92a55736220fd79b4d70acce31c4f80f7b8c1
 
 if __name__ == "__main__":
     main()

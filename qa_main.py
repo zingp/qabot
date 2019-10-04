@@ -1,8 +1,8 @@
 import argparse
 from collections import Counter
 import code
-import pickle
 import os
+import pickle
 
 import torch
 import torch.nn as nn
@@ -61,19 +61,24 @@ def list2tensor(sents, tokenizer):
 def train(df, model, loss_fn, optimizer, device, tokenizer, args):
     model.train()
     df = df.sample(frac=1)
+    df["neg_reply"] = df["reply"].sample(frac=1).tolist()
+    df = df[df["reply"] != df["neg_reply"]]
     for i in range(0, df.shape[0], args.batch_size):
         batch_df = df.iloc[i:i+args.batch_size]
         title = list(batch_df["title"])
         reply = list(batch_df["reply"])
-        target = torch.tensor(batch_df["is_best"].to_numpy()).float().view(-1, 1)
-        if args.loss_function == "cosine":
-            target[target==0] = -1
+        neg_reply = list(batch_df["neg_reply"])
+        batch_size = len(title)
+        title = title + title
+        replies = reply + neg_reply
         x, x_mask = list2tensor(title, tokenizer)
-        y, y_mask = list2tensor(reply, tokenizer)
+        y, y_mask = list2tensor(replies, tokenizer)
+        target = x.new_ones(batch_size * 2).float()
+        target[batch_size:] = -1 if args.loss_function == "cosine" else 0	
 
-        x = x.to(device)
+        x = x.to(device)	
         x_mask = x_mask.to(device)
-        y = y.to(device)
+        y = y.to(device)	
         y_mask = y_mask.to(device)
         target = target.to(device)
 
@@ -104,21 +109,25 @@ def train(df, model, loss_fn, optimizer, device, tokenizer, args):
 
 def evaluate(df, model, loss_fn, device, tokenizer, args):
     model.eval()
-    df = df.sample(frac=1)
+    df["neg_reply"] = df["reply"].sample(frac=1).tolist()
+    df = df[df["reply"] != df["neg_reply"]]
     num_corrects, total_counts = 0, 0
     for i in range(0, df.shape[0], args.batch_size):
         batch_df = df.iloc[i:i+args.batch_size]
         title = list(batch_df["title"])
         reply = list(batch_df["reply"])
-        target = torch.tensor(batch_df["is_best"].to_numpy()).float().view(-1,1)
-        if args.loss_function == "cosine":
-            target[target==0] = -1
+        neg_reply = list(batch_df["neg_reply"])
+        batch_size = len(title)
+        title = title + title
+        replies = reply + neg_reply
         x, x_mask = list2tensor(title, tokenizer)
-        y, y_mask = list2tensor(reply, tokenizer)
+        y, y_mask = list2tensor(replies, tokenizer)
+        target = x.new_ones(batch_size * 2).float()
+        target[batch_size:] = -1 if args.loss_function == "cosine" else 0	
 
-        x = x.to(device)
+        x = x.to(device)	
         x_mask = x_mask.to(device)
-        y = y.to(device)
+        y = y.to(device)	
         y_mask = y_mask.to(device)
         target = target.to(device)
 
@@ -127,13 +136,13 @@ def evaluate(df, model, loss_fn, device, tokenizer, args):
             loss = loss_fn(x_rep, y_rep, target)
             sim = F.cosine_similarity(x_rep, y_rep)
             sim[sim < 0] = -1
-            sim[sim >= 0] = 1
+            sim[sim >= 0] = 1	
         elif args.loss_function == "CrossEntropy":
             logits = model.linear(torch.cat([x_rep, y_rep], 1))
             loss = loss_fn(logits, target)
             sim = torch.sigmoid(logits)
             sim[sim < 0.5] = 0
-            sim[sim >= 0.5] = 1
+            sim[sim >= 0.5] = 1	
 
         num_corrects = torch.sum(sim == target).item() 
         total_counts = target.shape[0]
@@ -160,14 +169,14 @@ def main():
                         help="word embedding size")
     parser.add_argument("--batch_size", default=64, type=int, required=False,
                         help="batch size for train and eval")
-    parser.add_argument("--loss_function", default="CrossEntropy", type=str, required=False,
+    parser.add_argument("--loss_function", default="cosine", type=str, required=False,
                         choices=["CrossEntropy", "cosine"],
                         help="which loss function to choose")
     args = parser.parse_args()
 
     # load dataset
-    train_df = pd.read_csv(args.train_file)[["title", "reply", "is_best"]]
-    dev_df = pd.read_csv(args.dev_file)[["title", "reply", "is_best"]]
+    train_df = pd.read_csv(args.train_file)[["title", "reply"]]
+    dev_df = pd.read_csv(args.dev_file)[["title", "reply"]]
     texts = list(train_df["title"]) + list(train_df["reply"])
     tokenizer = create_tokenizer(texts, args.vocab_size)
 
@@ -179,7 +188,7 @@ def main():
     elif args.loss_function == "cosine":
         loss_fn = nn.CosineEmbeddingLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu") 
+    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu") 
     model = model.to(device)
 
     if not os.path.exists(args.output_dir):
@@ -194,7 +203,7 @@ def main():
         if acc > best_acc:
             best_acc = acc
             print("saving best model")
-            torch.save(model.state_dict(), os.path.join(args.output_dir, "model.pth"))
+            torch.save(model.state_dict(), os.path.join(args.output_dir, "faq_model.pth"))
 
 if __name__ == "__main__":
     main()
