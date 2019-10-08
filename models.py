@@ -5,25 +5,16 @@ import torch.nn.functional as F
 
 
 class GRUEncoder(nn.Module):
-    def __init__(self, 
-        vocab_size, 
-        embed_size, 
-        hidden_size, 
-        dropout_p=0.1, 
-        avg_hidden=True,
-        n_layers=1,
-        bidirectional=True):
+    def __init__(self, vocab_size, embed_size, hidden_size, dropout_p=0.1, 
+                 avg_hidden=True, n_layers=1, bidirectional=True):
         super(GRUEncoder, self).__init__()
         self.hidden_size = hidden_size	
         self.embed = nn.Embedding(vocab_size, embed_size)
+        # 如果是双向的
         if bidirectional:
             hidden_size //= 2
-        self.rnn = nn.GRU(
-            embed_size, 
-            hidden_size,
-            num_layers=n_layers,
-            bidirectional=bidirectional,
-            dropout=dropout_p)
+        self.gru = nn.GRU(embed_size, hidden_size, num_layers=n_layers, 
+                          bidirectional=bidirectional, dropout=dropout_p)
         self.dropout = nn.Dropout(dropout_p)
         self.bidirectional = bidirectional
         self.avg_hidden = avg_hidden	
@@ -39,7 +30,7 @@ class GRUEncoder(nn.Module):
             batch_first=True,
             #enforce_sorted=False,
             ) 
-        output, hidden = self.rnn(x_embed)
+        output, hidden = self.gru(x_embed)
         output, seq_len = torch.nn.utils.rnn.pad_packed_sequence(
             sequence=output,
             batch_first=True,
