@@ -193,7 +193,7 @@ def main():
         acc = evaluate(dev_df, model, loss_fn, device, tokenizer, args)
         if acc > best_acc:
             best_acc = acc
-            print("saving best model")
+            print("saving best model to:", args.output_dir)
             torch.save(model.state_dict(), os.path.join(args.output_dir, "model.pth"))
 
 if __name__ == "__main__":
